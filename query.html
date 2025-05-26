@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>صفحة الاستعلام عن بيانات المدارس</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: linear-gradient(to bottom right, #e8f5e9, #ffffff);
+      padding: 20px;
+      color: #2e7d32;
+    }
+    .main-header {
+      background-color: #1b5e20;
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      text-align: center;
+      margin-bottom: 25px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    }
+    .main-header h1 { margin: 0; font-size: 24px; }
+    .main-header h2 { margin: 5px 0 0; font-size: 18px; font-weight: normal; color: #c8e6c9; }
+    .top-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #f1f8e9;
+      border-radius: 12px;
+      padding: 10px 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 15px;
+    }
+    .top-bar button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      background-color: #388e3c;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    #userInfo {
+      font-weight: bold;
+      font-size: 15px;
+      color: #2e7d32;
+    }
+    .search-container {
+      max-width: 600px;
+      margin: auto;
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .search-container input {
+      width: 100%;
+      padding: 14px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 16px;
+    }
+    .table-container {
+      overflow-x: auto;
+      background-color: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1000px;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #2e7d32;
+      color: white;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+    tr:nth-child(even) { background-color: #f1f8e9; }
+  </style>
+</head>
+<body>
+  <div class="main-header">
+    <h1>الإدارة العامة للتعليم بمنطقة عسير</h1>
+    <h2>قسم الأمن والسلامة والمرافق</h2>
+  </div>
+  <div class="top-bar">
+    <div id="userInfo">👤 المستخدم: <span id="userNameLabel"></span> | الصلاحية: <span id="userRoleLabel"></span></div>
+    <div>
+      <button onclick="logout()">🔒 تسجيل الخروج</button>
+    </div>
+  </div>
+
+  <div class="search-container">
+    <input id="searchInput" type="text" placeholder="🔍 ابحث عن مدرسة..." oninput="filterResults()">
+  </div>
+
+  <div class="table-container">
+    <table id="resultsTable" style="display:none;">
+      <thead>
+        <tr>
+          <th>الرقم الإحصائي</th><th>القطاع</th><th>المكتب</th><th>النوع</th><th>اسم المدرسة</th>
+          <th>اسم المدير/ة</th><th>رقم الجوال</th><th>اسم المنسق/ة</th><th>جوال المنسق/ة</th>
+          <th>حالة التأكيد</th><th>الملاحظات</th><th>تاريخ التأكيد</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="noResults" style="display:none; text-align:center; font-weight:bold; color:#c62828;">❌ لا توجد نتائج</div>
+  </div>
+
+  <script>
+    let user = JSON.parse(localStorage.getItem("user") || "null");
+    if (!user || (user.role !== "supervisor" && user.role !== "admin")) {
+      user = { name: "مشرف تجريبي", role: "supervisor" };
+    }
+
+    document.getElementById("userNameLabel").textContent = user.name;
+    document.getElementById("userRoleLabel").textContent = user.role;
+
+    let schoolData = [];
+    fetch("https://script.google.com/macros/s/AKfycbyEHr9r1KLWmf-vCShIlFU7N_q69ZFws0mTu_3AbY-l1IqJTOvwNQaL2m8IeagGpFgo/exec")
+      .then(res => res.json())
+      .then(data => {
+        schoolData = data.schools || [];
+        renderTable(schoolData);
+      });
+
+    function renderTable(data) {
+      const tbody = document.querySelector("#resultsTable tbody");
+      tbody.innerHTML = "";
+      if (!data.length) {
+        document.getElementById("resultsTable").style.display = "none";
+        document.getElementById("noResults").style.display = "block";
+        return;
+      }
+      data.forEach(row => {
+        const tr = document.createElement("tr");
+        [
+          'الرقم الإحصائي', 'القطاع', 'المكتب', 'النوع', 'اسم المدرسة',
+          'اسم المدير/ة', 'رقم الجوال', 'اسم المنسق/ة', 'جوال المنسق/ة',
+          'حالة التأكيد', 'الملاحظات', 'تاريخ التأكيد'
+        ].forEach(key => {
+          const td = document.createElement("td");
+          if (key === 'الملاحظات') {
+            const textarea = document.createElement('textarea');
+            textarea.value = row[key] || '';
+            textarea.rows = 2;
+            textarea.style.width = '100%';
+            textarea.onchange = () => saveNote(row['الرقم الإحصائي'], textarea.value);
+            td.appendChild(textarea);
+          } else {
+            td.textContent = row[key] || '';
+          }
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      document.getElementById("resultsTable").style.display = "table";
+      document.getElementById("noResults").style.display = "none";
+    }
+
+    function filterResults() {
+      const query = document.getElementById("searchInput").value.trim().toLowerCase();
+      const filtered = schoolData.filter(row =>
+        Object.values(row).some(val => val && String(val).toLowerCase().includes(query))
+      );
+      renderTable(filtered);
+    }
+
+    function logout() {
+      localStorage.removeItem("user");
+      window.location.href = "login.html";
+    }
+
+    function saveNote(code, note) {
+      fetch("https://script.google.com/macros/s/AKfycbyEHr9r1KLWmf-vCShIlFU7N_q69ZFws0mTu_3AbY-l1IqJTOvwNQaL2m8IeagGpFgo/exec", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `action=updateNote&code=${encodeURIComponent(code)}&note=${encodeURIComponent(note)}`
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.result !== 'success') alert('❌ تعذر حفظ الملاحظة');
+      })
+      .catch(() => alert('⚠️ حدث خطأ في الاتصال بالخادم'));
+    }
+  </script>
+</body>
+</html>
