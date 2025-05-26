@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <title>تحديث بيانات الموظف</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Cairo', sans-serif;
+      background: linear-gradient(to bottom right, #e8f5e9, #ffffff);
+      padding: 20px;
+      text-align: center;
+    }
+    .container {
+      background-color: #ffffff;
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      max-width: 700px;
+      margin: auto;
+    }
+    h2 {
+      margin-bottom: 25px;
+      color: #1b5e20;
+      font-weight: 700;
+    }
+    form {
+      text-align: right;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #2e7d32;
+      font-weight: 600;
+      font-size: 15px;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 18px;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      font-size: 15px;
+      font-family: 'Cairo', sans-serif;
+    }
+    input[readonly] {
+      background-color: #f1f1f1;
+      color: #666;
+    }
+    button {
+      width: 48%;
+      padding: 12px;
+      margin-top: 10px;
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: bold;
+      font-family: 'Cairo', sans-serif;
+      cursor: pointer;
+    }
+    button:first-of-type {
+      background-color: #2e7d32;
+      color: white;
+    }
+    button:last-of-type {
+      background-color: #9e9e9e;
+      color: white;
+    }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #323232;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 6px;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+      z-index: 1000;
+    }
+    .toast.show {
+      opacity: 1;
+    }
+    .welcome {
+      position: fixed;
+      top: 30px;
+      right: 20px;
+      background-color: #43a047;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+      z-index: 1000;
+    }
+    .welcome.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>تحديث بيانات الموظف</h2>
+    <div id="step1">
+      <input type="text" id="nationalId" placeholder="أدخل رقم السجل المدني">
+      <button onclick="fetchData()" style="background-color:#388e3c; color:white; margin-top:10px">استعلام</button>
+    </div>
+    <div id="formSection" style="display:none;">
+      <form id="employeeForm">
+        <label for="name">اسم الموظف</label>
+        <input type="text" id="name" readonly>
+
+        <label for="id">رقم السجل</label>
+        <input type="text" id="id" readonly>
+
+        <label for="phone">رقم التواصل</label>
+        <input type="text" id="phone">
+
+        <label for="grade">المرتبة/ المستوي</label>
+        <input type="text" id="grade">
+
+        <label for="sector">القطاع</label>
+        <input type="text" id="sector">
+
+        <label for="jobTitle">المسمى الوظيفي الحالي</label>
+<input type="text" id="jobTitle">
+
+        <label for="department">القسم</label>
+<select id="department" style="width: 100%; padding: 12px; margin-bottom: 18px; border: 1px solid #ccc; border-radius: 10px; font-size: 15px; font-family: 'Cairo', sans-serif;">
+  <option value="">-- اختر القسم --</option>
+  <option value="السلامة المدرسية">السلامة المدرسية</option>
+  <option value="الأجور">الأجور</option>
+  <option value="الأمن المدرسي">الأمن المدرسي</option>
+  <option value="الأزمات">الأزمات</option>
+  <option value="المباني">المباني</option>
+  <option value="المراقبين">المراقبين</option>
+</select>
+
+        <label for="qualification">المؤهل التعليمي</label>
+        <input type="text" id="qualification">
+
+        <label for="major">التخصص</label>
+        <input type="text" id="major">
+
+        <label for="actualTitle">المسمى الوظيفي الفعلي</label>
+        <input type="text" id="actualTitle">
+
+        <div style="display:flex; justify-content: space-between; gap: 10px;">
+          <button type="button" onclick="submitData()">تأكيد البيانات</button>
+          <button type="button" onclick="goBack()">رجوع</button>
+        </div>
+      </form>
+    </div>
+    <p id="message"></p>
+  </div>
+
+  <div id="toast" class="toast"></div>
+  <div id="welcomeMessage" class="welcome"></div>
+
+  <script>
+    const scriptURL = 'https://script.google.com/macros/s/AKfycbwbVZk8j5l4SeCD_dUlfZsZ4hdB32Isgb7beOM391Pjlbu0oYAFyW7anlaHWQncEEoChg/exec';
+
+    function fetchData() {
+      
+      const nationalId = document.getElementById('nationalId').value.trim();
+      if (!nationalId) return alert("يرجى إدخال رقم السجل المدني");
+      fetch(`${scriptURL}?id=${nationalId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.status === 'ok') {
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('formSection').style.display = 'block';
+            document.getElementById('name').value = data.name;
+            document.getElementById('id').value = data.id;
+            document.getElementById('phone').value = data.phone;
+            document.getElementById('grade').value = data.grade;
+            document.getElementById('sector').value = data.sector;
+            document.getElementById('jobTitle').value = data.jobTitle;
+            document.getElementById('department').value = data.department;
+            document.getElementById('qualification').value = data.qualification;
+            document.getElementById('major').value = data.major;
+document.getElementById('actualTitle').value = data.actualTitle;
+            showWelcome(data.name);
+          } else {
+            showToast('لم يتم العثور على بيانات.');
+          }
+        }).catch(() => {
+          showToast('حدث خطأ في الاتصال بالسيرفر.');
+        });
+    }
+
+    function submitData() {
+      const payload = {
+        id: document.getElementById('id').value,
+        phone: document.getElementById('phone').value,
+        grade: document.getElementById('grade').value,
+        sector: document.getElementById('sector').value,
+        jobTitle: document.getElementById('jobTitle').value,
+        department: document.getElementById('department').value,
+        qualification: document.getElementById('qualification').value,
+        major: document.getElementById('major').value,
+        actualTitle: document.getElementById('actualTitle').value
+      };
+      fetch(scriptURL, {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      })
+      .then(res => res.text())
+      .then(msg => {
+        showToast('✅ تم تأكيد البيانات بنجاح');
+      }).catch(() => {
+        showToast('❌ فشل في إرسال البيانات');
+      });
+    }
+
+    function goBack() {
+      document.getElementById('formSection').style.display = 'none';
+      document.getElementById('step1').style.display = 'block';
+      document.getElementById('nationalId').value = '';
+    }
+
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function showWelcome(name) {
+      const welcome = document.getElementById('welcomeMessage');
+      welcome.textContent = `مرحبًا ألف بـ ${name}`;
+      welcome.classList.add('show');
+      setTimeout(() => welcome.classList.remove('show'), 5000);
+    }
+  </script>
+</body>
+</html>
